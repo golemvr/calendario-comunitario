@@ -18,61 +18,8 @@ const CATEGORY_NAMES = {
   other: 'Evento / Otro'
 };
 
-// Seed demo room so the app has rich content out of the box
-const DEFAULT_INITIAL_ROOMS = [
-  {
-    id: 'room_demo_1',
-    code: 'ING-4821',
-    name: 'Sistemas Operativos & Redes',
-    career: 'Ingeniería en Informática',
-    color: '#6366f1',
-    description: 'Comisión 2 - Teóricos los martes 18hs y laboratorios los viernes. Drive de resúmenes en el canal general.',
-    creator: 'Matías (Admin)',
-    createdAt: new Date().toISOString(),
-    activities: [
-      {
-        id: 'act_1',
-        title: 'Primer Parcial de Redes (TCP/IP y Subnetting)',
-        category: 'exam',
-        date: getRelativeDateString(3),
-        startTime: '18:00',
-        endTime: '21:00',
-        author: 'Profesor titular',
-        description: 'Parcial presencial en Aula Magna. Llevar documento, calculadora y hojas cuadriculadas. Se evalúa capas OSI, TCP/UDP y subnetting VLSM.'
-      },
-      {
-        id: 'act_2',
-        title: 'Entrega TP2: Simulación de Hilos y Semáforos',
-        category: 'assignment',
-        date: getRelativeDateString(5),
-        startTime: '23:59',
-        endTime: '23:59',
-        author: 'Lucas G.',
-        description: 'Subir repositorio de GitHub con el informe en PDF al campus virtual. Grupos de hasta 4 integrantes.'
-      },
-      {
-        id: 'act_3',
-        title: 'Junta de Repaso en Biblioteca Central',
-        category: 'study',
-        date: getRelativeDateString(1),
-        startTime: '15:00',
-        endTime: '17:30',
-        author: 'Carla',
-        description: 'Nos juntamos en el 2do piso para resolver los ejercicios tipo examen de años anteriores.'
-      },
-      {
-        id: 'act_4',
-        title: 'Clase Consulta y Dudas del TP',
-        category: 'class',
-        date: getRelativeDateString(4),
-        startTime: '17:00',
-        endTime: '18:30',
-        author: 'Ayudante de cátedra',
-        description: 'Vía Google Meet. Link fijado en la descripción de la materia.'
-      }
-    ]
-  }
-];
+// Rooms are completely private by default - only accessible via invite code, direct link, or QR
+const DEFAULT_INITIAL_ROOMS = [];
 
 function getRelativeDateString(offsetDays) {
   const d = new Date();
@@ -265,28 +212,7 @@ function checkUrlParamsForRoom() {
   const roomCodeParam = urlParams.get('room');
   if (roomCodeParam) {
     const cleanCode = roomCodeParam.trim().toUpperCase();
-    const existing = rooms.find(r => r.code.toUpperCase() === cleanCode);
-    if (existing) {
-      activeRoomId = existing.id;
-      showToast(`¡Entraste a la sala ${existing.name}!`, 'success');
-    } else {
-      // Create imported room on the fly if user is entering an invite link
-      const newRoom = {
-        id: 'room_' + Date.now(),
-        code: cleanCode,
-        name: `Sala Comunitaria #${cleanCode}`,
-        career: 'Grupo de Estudio',
-        color: '#6366f1',
-        description: 'Sala unida mediante invitación compartida.',
-        creator: 'Compañero',
-        createdAt: new Date().toISOString(),
-        activities: []
-      };
-      rooms.unshift(newRoom);
-      activeRoomId = newRoom.id;
-      saveData();
-      showToast(`¡Te has unido con éxito a la sala ${cleanCode}!`, 'success');
-    }
+    joinByCode(cleanCode);
   }
 }
 
@@ -569,9 +495,9 @@ function renderSavedRoomsGrid() {
 }
 
 // ==========================================
-// ROOM ACTIONS: CREATE & JOIN
+// ROOM ACTIONS: CREATE & JOIN (100% PRIVATE)
 // ==========================================
-function handleCreateRoom(e) {
+async function handleCreateRoom(e) {
   e.preventDefault();
   const name = document.getElementById('roomName').value.trim();
   const career = document.getElementById('roomCareer').value.trim();
@@ -596,15 +522,27 @@ function handleCreateRoom(e) {
     activities: []
   };
 
+  // Add to local list of joined rooms
   rooms.unshift(newRoom);
   activeRoomId = newRoom.id;
   saveData();
+
+  // Save to private server storage so only invitees with the code/QR can enter
+  try {
+    await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRoom)
+    });
+  } catch (err) {
+    console.warn('Servidor offline o modo local:', err);
+  }
 
   closeModal(DOM.modalCreateRoom);
   DOM.formCreateRoom.reset();
   renderApp();
 
-  showToast('¡Sala comunitaria creada con éxito!', 'success');
+  showToast('¡Sala privada creada! Comparte el código o QR con tus invitados.', 'success');
 
   // Open invite modal right away so creator sees QR code immediately!
   setTimeout(() => {
@@ -618,39 +556,80 @@ function handleJoinByCodeSubmit() {
   joinByCode(code);
 }
 
-function joinByCode(codeToFind) {
+async function joinByCode(codeToFind) {
   const clean = codeToFind.trim().toUpperCase();
-  const found = rooms.find(r => r.code.toUpperCase() === clean);
+  if (!clean) return;
 
-  if (found) {
-    activeRoomId = found.id;
+  // 1. Si el usuario ya la tiene guardada en su lista local de salas:
+  const localFound = rooms.find(r => r.code.toUpperCase() === clean);
+  if (localFound) {
+    activeRoomId = localFound.id;
     saveData();
     DOM.joinErrorMsg.textContent = '';
     DOM.inputJoinCode.value = '';
     renderApp();
-    showToast(`¡Te uniste a la sala ${found.name}!`, 'success');
-  } else {
-    // Create new external imported room
-    const newRoom = {
-      id: 'room_' + Date.now(),
-      code: clean,
-      name: `Sala #${clean}`,
-      career: 'Grupo de Estudio',
-      color: '#06b6d4',
-      description: 'Sala conectada mediante código de invitación.',
-      creator: 'Compañero',
-      createdAt: new Date().toISOString(),
-      activities: []
-    };
-    rooms.unshift(newRoom);
-    activeRoomId = newRoom.id;
-    saveData();
-    DOM.joinErrorMsg.textContent = '';
-    DOM.inputJoinCode.value = '';
-    renderApp();
-    showToast(`¡Conectado a la sala comunitaria ${clean}!`, 'success');
+    showToast(`¡Entraste a la sala ${localFound.name}!`, 'success');
+    syncActiveRoomWithServer();
+    return;
+  }
+
+  // 2. Si no la tiene guardada, consultar al servidor si la sala privada existe:
+  DOM.btnSubmitJoinCode.disabled = true;
+  const originalBtnText = DOM.btnSubmitJoinCode.innerHTML;
+  DOM.btnSubmitJoinCode.innerHTML = '<span>Buscando...</span>';
+
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(clean)}`);
+    if (res.ok) {
+      const serverRoom = await res.json();
+      rooms.unshift(serverRoom);
+      activeRoomId = serverRoom.id;
+      saveData();
+      DOM.joinErrorMsg.textContent = '';
+      DOM.inputJoinCode.value = '';
+      renderApp();
+      showToast(`¡Te has unido con éxito a la sala ${serverRoom.name}!`, 'success');
+    } else {
+      DOM.joinErrorMsg.textContent = '🔒 Esta sala es privada o el código no existe. Verifica con quien te invitó.';
+      showToast('Sala privada no encontrada. Código o QR incorrecto.', 'error');
+    }
+  } catch (err) {
+    DOM.joinErrorMsg.textContent = 'No se pudo conectar al servidor para verificar la sala.';
+    showToast('Error de conexión al verificar el código.', 'error');
+  } finally {
+    DOM.btnSubmitJoinCode.disabled = false;
+    DOM.btnSubmitJoinCode.innerHTML = originalBtnText;
   }
 }
+
+async function syncActiveRoomWithServer() {
+  const room = getActiveRoom();
+  if (!room || !room.code) return;
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(room.code)}`);
+    if (res.ok) {
+      const serverRoom = await res.json();
+      if (serverRoom && serverRoom.activities) {
+        room.activities = serverRoom.activities;
+        room.name = serverRoom.name || room.name;
+        room.description = serverRoom.description || room.description;
+        saveData();
+        renderCalendar();
+        renderUpcomingActivities();
+        if (currentView === 'agenda') renderAgenda();
+      }
+    }
+  } catch (e) {
+    // silent
+  }
+}
+
+// Sincronización periódica en segundo plano cada 12 segundos si hay sala activa
+setInterval(() => {
+  if (activeRoomId) {
+    syncActiveRoomWithServer();
+  }
+}, 12000);
 
 // ==========================================
 // CALENDAR ENGINE: MONTH VIEW
@@ -987,7 +966,7 @@ function handleSaveActivity(e) {
     // Edit existing activity
     const existingIndex = (room.activities || []).findIndex(a => a.id === editId);
     if (existingIndex !== -1) {
-      room.activities[existingIndex] = {
+      const updatedAct = {
         ...room.activities[existingIndex],
         title,
         category,
@@ -997,7 +976,14 @@ function handleSaveActivity(e) {
         author,
         description
       };
+      room.activities[existingIndex] = updatedAct;
       showToast('Actividad actualizada', 'success');
+
+      fetch(`/api/rooms/${encodeURIComponent(room.code)}/activities/${encodeURIComponent(editId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedAct)
+      }).catch(err => console.warn('Sync PUT error:', err));
     }
   } else {
     // Add new activity
@@ -1015,6 +1001,12 @@ function handleSaveActivity(e) {
     if (!room.activities) room.activities = [];
     room.activities.push(newActivity);
     showToast('¡Actividad agregada al calendario!', 'success');
+
+    fetch(`/api/rooms/${encodeURIComponent(room.code)}/activities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newActivity)
+    }).catch(err => console.warn('Sync POST error:', err));
   }
 
   saveData();
@@ -1064,11 +1056,16 @@ function handleDeleteCurrentDetailActivity() {
   if (!room) return;
 
   if (confirm(`¿Seguro que deseas eliminar la actividad "${currentDetailActivity.title}"?`)) {
-    room.activities = (room.activities || []).filter(a => a.id !== currentDetailActivity.id);
+    const actId = currentDetailActivity.id;
+    room.activities = (room.activities || []).filter(a => a.id !== actId);
     saveData();
     closeModal(DOM.modalDetailActivity);
     renderApp();
     showToast('Actividad eliminada', 'info');
+
+    fetch(`/api/rooms/${encodeURIComponent(room.code)}/activities/${encodeURIComponent(actId)}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('Sync DELETE error:', err));
   }
 }
 

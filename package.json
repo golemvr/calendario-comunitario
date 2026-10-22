@@ -1,12 +1,12 @@
 {
   "name": "calendario-comunitario",
   "version": "1.0.0",
-  "description": "CampusSync - Calendario Comunitario para Estudiantes",
+  "description": "CampusSync - Calendario Comunitario Privado para Estudiantes",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["calendar", "students", "community"],
+  "keywords": ["calendar", "private", "students", "qr"],
   "author": "golemvr",
   "license": "MIT"
 }
