@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Calendario Comunitario para Estudiantes - Crea salas por materias o grupos de estudio, comparte mediante código o código QR y organiza actividades y entregas en tiempo real.">
+  <title>CampusSync | Calendario Comunitario de Estudio</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- QRCode.js CDN for ultra fast QR generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- HTML5-QRCode CDN for camera scanning -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background decorative glows -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- App Header / Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area" id="btnGoHome" role="button" tabindex="0" title="Ir al inicio">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="4" ry="4"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <path d="m9 16 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="brand-title">Campus<span class="gradient-text">Sync</span></span>
+          <span class="brand-subtitle">Calendario Comunitario</span>
+        </div>
+      </div>
+
+      <!-- Room header info (visible when a room is active) -->
+      <div class="active-room-bar hidden" id="activeRoomBar">
+        <div class="room-pill" id="btnRoomDetails">
+          <span class="room-indicator-dot" id="roomColorDot"></span>
+          <span class="room-name-display" id="headerRoomName">Matemática Discreta</span>
+          <span class="room-code-tag" id="headerRoomCode" title="Código de sala">#MAT-101</span>
+        </div>
+
+        <div class="room-header-actions">
+          <button class="btn btn-invite" id="btnOpenInviteModal" title="Invitar y ver QR">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Invitar (QR / Código)</span>
+          </button>
+
+          <button class="btn btn-primary" id="btnOpenNewActivityModal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Añadir Actividad</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right utility tools -->
+      <div class="header-utils">
+        <button class="btn btn-ghost" id="btnSwitchRoom" title="Cambiar de sala">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span class="btn-text-desktop">Salas</span>
+        </button>
+        <button class="btn btn-icon theme-toggle" id="btnThemeToggle" title="Alternar tema">
+          <svg id="themeIconSun" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ==================== VIEW 1: LANDING & ROOM SELECTION ==================== -->
+    <section class="landing-section" id="landingSection">
+      <div class="landing-hero">
+        <div class="hero-badge">
+          <span class="sparkle-icon">✨</span> Calendario Colaborativo para Estudiantes
+        </div>
+        <h1 class="hero-title">Organiza tus materias y grupos en un solo lugar</h1>
+        <p class="hero-subtitle">
+          Crea una sala comunitaria para tu curso o equipo de estudio. Invita a tus compañeros al instante con un <strong>código único</strong> o escaneando un <strong>código QR</strong>.
+        </p>
+      </div>
+
+      <!-- Action Cards Hub -->
+      <div class="hub-cards-grid">
+        <!-- Card 1: Crear Sala -->
+        <div class="hub-card hub-card-primary" id="cardCreateRoom">
+          <div class="card-icon-bubble bubble-primary">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+          </div>
+          <h2 class="card-title">Crear Nueva Sala</h2>
+          <p class="card-description">
+            Inicia un calendario grupal para una materia, proyecto o grupo de estudio. Se generará un código y un QR de acceso.
+          </p>
+          <button class="btn btn-primary btn-block" id="btnShowCreateRoomForm">
+            <span>Crear Sala de Estudio</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Card 2: Unirse con Código -->
+        <div class="hub-card" id="cardJoinCode">
+          <div class="card-icon-bubble bubble-secondary">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+          <h2 class="card-title">Unirse con Código</h2>
+          <p class="card-description">
+            Introduce el código alfanumérico que te compartió un compañero o profesor.
+          </p>
+          <form class="join-code-form" id="joinCodeForm" onsubmit="event.preventDefault();">
+            <div class="input-with-button">
+              <input 
+                type="text" 
+                id="inputJoinCode" 
+                placeholder="Ej: EST-7482" 
+                maxlength="12" 
+                autocomplete="off"
+                spellcheck="false"
+                required
+              >
+              <button type="submit" class="btn btn-secondary" id="btnSubmitJoinCode">
+                <span>Entrar</span>
+              </button>
+            </div>
+            <span class="input-hint" id="joinErrorMsg"></span>
+          </form>
+        </div>
+
+        <!-- Card 3: Escanear Código QR -->
+        <div class="hub-card" id="cardScanQr">
+          <div class="card-icon-bubble bubble-accent">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+              <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+              <rect x="7" y="7" width="10" height="10" rx="1"></rect>
+            </svg>
+          </div>
+          <h2 class="card-title">Escanear Código QR</h2>
+          <p class="card-description">
+            ¿Tu compañero tiene el QR en pantalla o impreso? Escanéalo usando tu cámara o abre el enlace directo.
+          </p>
+          <button class="btn btn-outline btn-block" id="btnOpenScannerModal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>Abrir Escáner QR</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent / Saved Rooms Section -->
+      <div class="saved-rooms-section" id="savedRoomsSection">
+        <div class="section-header">
+          <div class="section-title-wrapper">
+            <h3 class="section-title">Tus Salas Activas</h3>
+            <span class="badge" id="roomsCountBadge">0</span>
+          </div>
+          <p class="section-subtitle">Accede rápidamente a tus calendarios guardados en este dispositivo.</p>
+        </div>
+
+        <div class="rooms-list-grid" id="roomsListGrid">
+          <!-- Dynamically populated room cards -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==================== VIEW 2: ACTIVE CALENDAR ROOM ==================== -->
+    <section class="calendar-section hidden" id="calendarSection">
+      
+      <!-- Top Calendar Toolbar -->
+      <div class="calendar-toolbar">
+        <div class="toolbar-left">
+          <div class="nav-controls">
+            <button class="btn btn-icon" id="btnPrevMonth" title="Mes anterior">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnToday">Hoy</button>
+            <button class="btn btn-icon" id="btnNextMonth" title="Mes siguiente">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <h2 class="current-period-label" id="currentPeriodLabel">Octubre 2026</h2>
+        </div>
+
+        <div class="toolbar-center">
+          <!-- Category Filter pills -->
+          <div class="filter-pills" id="categoryFilterContainer">
+            <button class="filter-pill active" data-filter="all">Todas</button>
+            <button class="filter-pill tag-exam" data-filter="exam">Exámenes</button>
+            <button class="filter-pill tag-assignment" data-filter="assignment">Entregas</button>
+            <button class="filter-pill tag-class" data-filter="class">Clases</button>
+            <button class="filter-pill tag-study" data-filter="study">Estudio</button>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- View switcher -->
+          <div class="view-switcher">
+            <button class="view-btn active" id="btnViewMonth" data-view="month" title="Vista mensual">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>Mes</span>
+            </button>
+            <button class="view-btn" id="btnViewAgenda" data-view="agenda" title="Vista lista">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              <span>Agenda</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Main Layout (Grid + Sidebar) -->
+      <div class="calendar-layout">
+        
+        <!-- Left: The Interactive Calendar Grid or Agenda -->
+        <div class="calendar-workspace">
+          <!-- Monthly View -->
+          <div class="calendar-month-view" id="calendarMonthView">
+            <!-- Day of week header -->
+            <div class="weekdays-grid">
+              <div>Lun</div>
+              <div>Mar</div>
+              <div>Mié</div>
+              <div>Jue</div>
+              <div>Vie</div>
+              <div>Sáb</div>
+              <div>Dom</div>
+            </div>
+            <!-- Days container -->
+            <div class="days-grid" id="daysGrid">
+              <!-- Dynamically rendered day cells -->
+            </div>
+          </div>
+
+          <!-- Agenda List View (alternative) -->
+          <div class="calendar-agenda-view hidden" id="calendarAgendaView">
+            <div class="agenda-header-banner">
+              <h3>Cronograma de Actividades</h3>
+              <p>Listado ordenado de todos los eventos, parciales y entregas del grupo.</p>
+            </div>
+            <div class="agenda-items-list" id="agendaItemsList">
+              <!-- Rendered agenda items -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Activity Sidebar -->
+        <aside class="calendar-sidebar">
+          
+          <!-- Quick Room Stats Box -->
+          <div class="sidebar-box room-meta-box">
+            <div class="room-meta-header">
+              <h4 id="sidebarRoomTitle">Nombre de la Sala</h4>
+              <p id="sidebarRoomDesc" class="room-desc-text">Sin descripción</p>
+            </div>
+
+            <div class="invite-quick-card">
+              <div class="invite-code-row">
+                <span class="invite-label">Código de Sala:</span>
+                <span class="invite-code-val" id="sidebarRoomCodeDisplay">EST-0000</span>
+                <button class="btn btn-icon btn-sm" id="btnCopyCodeSidebar" title="Copiar código">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+              <button class="btn btn-outline btn-sm btn-block" id="btnOpenInviteModalSidebar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Mostrar QR e Invitación</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Upcoming Highlights Box -->
+          <div class="sidebar-box upcoming-box">
+            <div class="sidebar-box-header">
+              <h4>Próximas Actividades</h4>
+              <span class="badge" id="upcomingCountBadge">0</span>
+            </div>
+            <div class="upcoming-list" id="upcomingList">
+              <!-- Dynamic upcoming cards -->
+            </div>
+          </div>
+
+          <!-- Category Legend Box -->
+          <div class="sidebar-box legend-box">
+            <div class="sidebar-box-header">
+              <h4>Categorías</h4>
+            </div>
+            <div class="legend-list">
+              <div class="legend-item"><span class="legend-dot dot-exam"></span><span>Exámenes y Parciales</span></div>
+              <div class="legend-item"><span class="legend-dot dot-assignment"></span><span>Entregas y Trabajos</span></div>
+              <div class="legend-item"><span class="legend-dot dot-class"></span><span>Clases y Teóricos</span></div>
+              <div class="legend-item"><span class="legend-dot dot-study"></span><span>Sesiones de Estudio</span></div>
+              <div class="legend-item"><span class="legend-dot dot-other"></span><span>Reuniones / Otros</span></div>
+            </div>
+          </div>
+
+        </aside>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL 1: CREAR SALA ==================== -->
+  <div class="modal-backdrop hidden" id="modalCreateRoom">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrapper">
+          <div class="modal-title-icon bubble-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+          </div>
+          <div>
+            <h3>Crear Sala Comunitaria</h3>
+            <p>Configura tu nuevo calendario de estudio grupal</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseCreateRoom" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <form id="formCreateRoom" class="modal-form">
+        <div class="form-group">
+          <label for="roomName">Nombre de la Sala / Materia <span class="required">*</span></label>
+          <input type="text" id="roomName" placeholder="Ej: Álgebra Lineal - Comisión B" required maxlength="50">
+          <small class="form-help">El nombre con el que todos identificarán este calendario.</small>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="roomCareer">Carrera o Curso (opcional)</label>
+            <input type="text" id="roomCareer" placeholder="Ej: Ing. Informática" maxlength="40">
+          </div>
+          <div class="form-group">
+            <label for="roomColor">Color Distintivo</label>
+            <div class="color-picker-row" id="colorPickerRow">
+              <button type="button" class="color-swatch active" data-color="#6366f1" style="background:#6366f1;"></button>
+              <button type="button" class="color-swatch" data-color="#06b6d4" style="background:#06b6d4;"></button>
+              <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981;"></button>
+              <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b;"></button>
+              <button type="button" class="color-swatch" data-color="#ec4899" style="background:#ec4899;"></button>
+              <button type="button" class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;"></button>
+            </div>
+            <input type="hidden" id="selectedRoomColor" value="#6366f1">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="roomDescription">Descripción o Información Clave</label>
+          <textarea id="roomDescription" rows="2" placeholder="Ej: Horarios de cursada: Mar y Jue 14:00. Canal de Discord y Drive compartido." maxlength="200"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="roomCreatorName">Tu Nombre o Apodo</label>
+          <input type="text" id="roomCreatorName" placeholder="Ej: Matías (Administrador)" maxlength="30">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btnCancelCreateRoom">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <span>Crear Sala y Generar QR</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL 2: INVITACIÓN Y CÓDIGO QR ==================== -->
+  <div class="modal-backdrop hidden" id="modalInvite">
+    <div class="modal-card modal-invite-card">
+      <div class="modal-header">
+        <div class="modal-title-wrapper">
+          <div class="modal-title-icon bubble-accent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </div>
+          <div>
+            <h3>Invitar al Calendario Comunitario</h3>
+            <p id="modalInviteRoomSubtitle">Comparte el acceso a tus compañeros</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseInvite" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="invite-body">
+        
+        <!-- Large QR Display Container -->
+        <div class="qr-showcase">
+          <div class="qr-frame" id="qrContainer">
+            <!-- QRCode.js renders canvas / img here -->
+            <div id="qrCodeGraphic"></div>
+          </div>
+          <p class="qr-instruction">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            Apunta la cámara del móvil para entrar directo
+          </p>
+        </div>
+
+        <!-- Room Code Display -->
+        <div class="invite-code-card">
+          <span class="invite-code-title">Código de Acceso a la Sala</span>
+          <div class="code-big-display">
+            <span id="modalDisplayCode">EST-0000</span>
+            <button class="btn btn-secondary btn-sm" id="btnCopyInviteCode" title="Copiar código">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Share Actions -->
+        <div class="share-actions-group">
+          <div class="share-input-group">
+            <input type="text" id="shareDirectLink" readonly value="">
+            <button class="btn btn-primary btn-sm" id="btnCopyDirectLink">
+              <span>Copiar Enlace</span>
+            </button>
+          </div>
+
+          <div class="share-buttons-row">
+            <button class="btn btn-whatsapp" id="btnShareWhatsApp">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 6.46 17.5 2 12.04 2M12.05 3.67C16.58 3.67 20.28 7.37 20.28 11.92C20.28 16.46 16.58 20.16 12.05 20.16C10.66 20.16 9.3 19.81 8.1 19.14L7.81 18.97L4.69 19.79L5.52 16.75L5.34 16.45C4.6 15.22 4.21 13.78 4.21 11.92C4.21 7.37 7.9 3.67 12.05 3.67Z"/>
+              </svg>
+              <span>Enviar por WhatsApp</span>
+            </button>
+
+            <button class="btn btn-outline" id="btnDownloadQrImage">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Descargar Imagen QR</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL 3: NUEVA / EDITAR ACTIVIDAD ==================== -->
+  <div class="modal-backdrop hidden" id="modalActivity">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrapper">
+          <div class="modal-title-icon bubble-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <div>
+            <h3 id="modalActivityTitle">Añadir Nueva Actividad</h3>
+            <p>Se guardará en el calendario comunitario de la sala</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseActivity" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <form id="formActivity" class="modal-form">
+        <input type="hidden" id="activityEditId" value="">
+
+        <!-- Title -->
+        <div class="form-group">
+          <label for="activityTitle">Título de la Actividad <span class="required">*</span></label>
+          <input type="text" id="activityTitle" placeholder="Ej: Parcial 1 de Algoritmos / Entrega TP Grupal" required maxlength="80">
+        </div>
+
+        <!-- Category & Date -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="activityCategory">Categoría <span class="required">*</span></label>
+            <select id="activityCategory" required>
+              <option value="exam">🚨 Examen / Parcial</option>
+              <option value="assignment">📑 Entrega de TP / Tarea</option>
+              <option value="class">🎓 Clase Teórica / Práctica</option>
+              <option value="study">☕ Sesión de Estudio Grupal</option>
+              <option value="other">📌 Otro Evento / Recordatorio</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="activityDate">Fecha <span class="required">*</span></label>
+            <input type="date" id="activityDate" required>
+          </div>
+        </div>
+
+        <!-- Times: Start & End -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="activityStartTime">Hora de Inicio <span class="required">*</span></label>
+            <input type="time" id="activityStartTime" required value="09:00">
+          </div>
+          <div class="form-group">
+            <label for="activityEndTime">Hora de Fin <span class="required">*</span></label>
+            <input type="time" id="activityEndTime" required value="11:00">
+          </div>
+        </div>
+
+        <!-- Author / User tag -->
+        <div class="form-group">
+          <label for="activityAuthor">Anotado por (tu nombre/apodo)</label>
+          <input type="text" id="activityAuthor" placeholder="Ej: Ana (Grupo 4)" maxlength="30">
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="activityDescription">Descripción y Detalles</label>
+          <textarea id="activityDescription" rows="3" placeholder="Ej: Temas de la unidad 1 a la 3. Traer calculadora científica y hojas membretadas. Enlace a apuntes..." maxlength="500"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btnCancelActivity">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveActivitySubmit">
+            <span>Guardar en Calendario</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL 4: DETALLE DE ACTIVIDAD ==================== -->
+  <div class="modal-backdrop hidden" id="modalDetailActivity">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrapper">
+          <span class="detail-category-badge" id="detailCategoryBadge">Examen</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseDetailActivity" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="activity-detail-body">
+        <h2 class="detail-activity-title" id="detailTitle">Título de la Actividad</h2>
+
+        <div class="detail-meta-grid">
+          <div class="meta-cell">
+            <span class="meta-label">Fecha</span>
+            <span class="meta-val" id="detailDate">Viernes, 24 de Octubre</span>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Horario</span>
+            <span class="meta-val" id="detailTime">14:00 - 16:30 hs</span>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Duración</span>
+            <span class="meta-val" id="detailDuration">2 horas 30 min</span>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Registrado por</span>
+            <span class="meta-val" id="detailAuthor">Compañero</span>
+          </div>
+        </div>
+
+        <div class="detail-desc-box">
+          <span class="meta-label">Descripción y Notas</span>
+          <p id="detailDescription" class="detail-desc-text">Sin descripción adicional.</p>
+        </div>
+
+        <div class="detail-actions-row">
+          <button class="btn btn-danger-ghost" id="btnDeleteActivity">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>Eliminar</span>
+          </button>
+          
+          <div class="detail-actions-right">
+            <button class="btn btn-secondary" id="btnEditActivity">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span>Editar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL 5: ESCÁNER QR DE CÁMARA ==================== -->
+  <div class="modal-backdrop hidden" id="modalScanner">
+    <div class="modal-card scanner-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrapper">
+          <div class="modal-title-icon bubble-accent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </div>
+          <div>
+            <h3>Escanear Código QR</h3>
+            <p>Apunta tu cámara hacia el código QR de la sala</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseScanner" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="scanner-body">
+        <div id="qrReaderView" class="qr-reader-window"></div>
+        <div id="scannerFallbackInfo" class="scanner-fallback-info">
+          <p>También puedes ingresar el código manualmente si no tienes cámara disponible:</p>
+          <div class="input-with-button">
+            <input type="text" id="scannerManualCode" placeholder="Código de la sala (Ej: EST-7482)">
+            <button class="btn btn-primary" id="btnApplyManualCode">Ingresar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
