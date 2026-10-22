@@ -133,6 +133,18 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // 2b. DELETE /api/rooms/:code -> Delete private room
+    if (req.method === 'DELETE' && parts.length === 3) {
+      const code = parts[2].toUpperCase().trim();
+      const rooms = readRooms();
+      if (rooms[code]) {
+        delete rooms[code];
+        writeRooms(rooms);
+      }
+      sendJson(res, 200, { success: true });
+      return;
+    }
+
     // 3. POST /api/rooms/:code/activities -> Add activity to private room
     if (req.method === 'POST' && parts.length === 4 && parts[3] === 'activities') {
       try {

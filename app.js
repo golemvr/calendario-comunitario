@@ -93,6 +93,7 @@ const DOM = {
   sidebarRoomCodeDisplay: document.getElementById('sidebarRoomCodeDisplay'),
   btnCopyCodeSidebar: document.getElementById('btnCopyCodeSidebar'),
   btnOpenInviteModalSidebar: document.getElementById('btnOpenInviteModalSidebar'),
+  btnDeleteCurrentRoom: document.getElementById('btnDeleteCurrentRoom'),
   upcomingCountBadge: document.getElementById('upcomingCountBadge'),
   upcomingList: document.getElementById('upcomingList'),
 
@@ -181,6 +182,16 @@ function loadData() {
   const savedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_ROOM);
   if (savedActiveId && rooms.some(r => r.id === savedActiveId)) {
     activeRoomId = savedActiveId;
+  } else {
+    activeRoomId = null;
+  }
+
+  // Purgar automáticamente la sala demo obsoleta si existe de sesiones previas
+  const prevCount = rooms.length;
+  rooms = rooms.filter(r => r.id !== 'room_demo_1' && r.name !== 'Sistemas Operativos & Redes');
+  if (rooms.length !== prevCount) {
+    if (activeRoomId === 'room_demo_1') activeRoomId = null;
+    saveData();
   }
 }
 
@@ -320,6 +331,16 @@ function setupEventListeners() {
   DOM.btnOpenInviteModal.addEventListener('click', openInviteModal);
   DOM.btnOpenInviteModalSidebar.addEventListener('click', openInviteModal);
   DOM.btnOpenNewActivityModal.addEventListener('click', () => openNewActivityModal());
+
+  // Delete current active room from sidebar
+  if (DOM.btnDeleteCurrentRoom) {
+    DOM.btnDeleteCurrentRoom.addEventListener('click', () => {
+      const room = getActiveRoom();
+      if (room) {
+        deleteRoom(room.id, room.name, room.code);
+      }
+    });
+  }
 
   // Copy Code in Sidebar
   DOM.btnCopyCodeSidebar.addEventListener('click', () => {
@@ -476,13 +497,30 @@ function renderSavedRoomsGrid() {
           <span class="saved-room-name">${escapeHtml(room.name)}</span>
           <span class="saved-room-career">${escapeHtml(room.career || 'Comunidad Estudiantil')}</span>
         </div>
-        <span class="saved-room-code">${room.code}</span>
+        <div class="saved-room-top-right">
+          <span class="saved-room-code">${room.code}</span>
+          <button class="btn-delete-room-card" title="Eliminar sala">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="saved-room-bottom">
         <span>📅 ${totalActivities} actividades (${examsCount} exámenes)</span>
         <span style="font-weight:700; color:var(--brand-primary)">Entrar &rarr;</span>
       </div>
     `;
+
+    // Delete button click
+    const deleteBtn = card.querySelector('.btn-delete-room-card');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteRoom(room.id, room.name, room.code);
+      });
+    }
 
     card.addEventListener('click', () => {
       activeRoomId = room.id;
@@ -492,6 +530,24 @@ function renderSavedRoomsGrid() {
 
     DOM.roomsListGrid.appendChild(card);
   });
+}
+
+function deleteRoom(roomId, roomName, roomCode) {
+  if (confirm(`¿Estás seguro de que deseas eliminar la sala "${roomName}"?`)) {
+    rooms = rooms.filter(r => r.id !== roomId);
+    if (activeRoomId === roomId) {
+      activeRoomId = null;
+      localStorage.removeItem(STORAGE_KEY_ACTIVE_ROOM);
+    }
+    saveData();
+    renderApp();
+    showToast(`Sala "${roomName}" eliminada.`, 'info');
+
+    // Notify server to delete
+    if (roomCode) {
+      fetch(`/api/rooms/${encodeURIComponent(roomCode)}`, { method: 'DELETE' }).catch(() => {});
+    }
+  }
 }
 
 // ==========================================

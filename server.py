@@ -137,6 +137,16 @@ class PrivateCalendarHandler(SimpleHTTPRequestHandler):
         path = url_parts.path.strip('/')
         segments = path.split('/')
 
+        # DELETE /api/rooms/:code -> Delete entire private room
+        if len(segments) == 3 and segments[0] == 'api' and segments[1] == 'rooms':
+            code = urllib.parse.unquote(segments[2]).upper().strip()
+            rooms = read_rooms()
+            if code in rooms:
+                del rooms[code]
+                write_rooms(rooms)
+            self.send_json_response(200, {"success": True})
+            return
+
         # DELETE /api/rooms/:code/activities/:actId
         if len(segments) == 5 and segments[0] == 'api' and segments[1] == 'rooms' and segments[3] == 'activities':
             code = urllib.parse.unquote(segments[2]).upper().strip()

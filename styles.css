@@ -662,6 +662,30 @@ body {
   color: var(--brand-primary);
 }
 
+.saved-room-top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-delete-room-card {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.btn-delete-room-card:hover {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+}
+
 .saved-room-bottom {
   display: flex;
   align-items: center;
