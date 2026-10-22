@@ -50,3 +50,22 @@ Para abrirlo directamente en tu navegador:
    python -m http.server 3000
    ```
    Luego abre en tu navegador: `http://localhost:3000`
+
+---
+
+## 🌐 Despliegue en Render (Render.com)
+
+El proyecto incluye el archivo `render.yaml` preconfigurado como **Static Site** (Sitio Estático Gratuito con CDN y SSL).
+
+### Pasos para desplegar:
+1. Inicia sesión en [Render.com](https://dashboard.render.com).
+2. Haz clic en **New +** y selecciona **Static Site**.
+3. Conecta tu cuenta de GitHub y elige el repositorio `golemvr/calendario-comunitario`.
+4. Render leerá automáticamente la configuración:
+   - **Name:** `calendario-comunitario` (o el que prefieras).
+   - **Branch:** `main`
+   - **Build Command:** *(dejar vacío)*
+   - **Publish Directory:** `.`
+5. Haz clic en **Create Static Site**.
+En menos de un minuto tendrás tu enlace público `https://calendario-comunitario.onrender.com` activo y listo para compartir.
+
