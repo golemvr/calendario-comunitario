@@ -756,33 +756,30 @@ function createDayCell(dayNumber, dateString, isOtherMonth, isToday, activities)
   header.appendChild(quickAddBtn);
   cell.appendChild(header);
 
-  // Day activities pills container
+  // Day activities dots container (clean category color dots)
   const activitiesList = document.createElement('div');
-  activitiesList.className = 'day-activities-list';
+  activitiesList.className = 'day-activities-dots';
 
-  const MAX_VISIBLE = 3;
-  const visibleActs = activities.slice(0, MAX_VISIBLE);
+  const MAX_VISIBLE_DOTS = 6;
+  const visibleActs = activities.slice(0, MAX_VISIBLE_DOTS);
 
   visibleActs.forEach(act => {
-    const pill = document.createElement('div');
-    pill.className = `activity-pill cat-${act.category || 'other'}`;
-    pill.innerHTML = `
-      <span class="pill-time">${act.startTime || ''}</span>
-      <span class="pill-title">${escapeHtml(act.title)}</span>
-    `;
+    const dot = document.createElement('span');
+    dot.className = `activity-dot dot-${act.category || 'other'}`;
+    dot.setAttribute('title', `${act.startTime || ''} - ${act.title} (${CATEGORY_NAMES[act.category] || act.category})`);
 
-    pill.addEventListener('click', (e) => {
+    dot.addEventListener('click', (e) => {
       e.stopPropagation();
       openDetailModal(act);
     });
 
-    activitiesList.appendChild(pill);
+    activitiesList.appendChild(dot);
   });
 
-  if (activities.length > MAX_VISIBLE) {
-    const moreTag = document.createElement('div');
-    moreTag.className = 'more-activities-tag';
-    moreTag.textContent = `+${activities.length - MAX_VISIBLE} más`;
+  if (activities.length > MAX_VISIBLE_DOTS) {
+    const moreTag = document.createElement('span');
+    moreTag.className = 'more-dots-count';
+    moreTag.textContent = `+${activities.length - MAX_VISIBLE_DOTS}`;
     activitiesList.appendChild(moreTag);
   }
 
